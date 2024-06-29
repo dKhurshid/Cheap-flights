@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Search</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', sans-serif;
+            color: #ff6f61;
+            font-weight: 700;
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            color: #ffffff;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 15px 0;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .btn-primary {
+            background-color: #ff6f61;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background-color: #ff4b45;
+        }
+
+        .loading-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #ff6f61;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 200;
+        }
+
+        .loading-bar-inner {
+            width: 0;
+            height: 100%;
+            background-color: #ff4b45;
+            position: relative;
+        }
+
+        .loading-bar-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            color: white;
+            top: 0;
+            left: 0;
+            line-height: 30px;
+            font-size: 1.5em;
+        }
+
+        #Canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: purple;
+            display: none;
+            z-index: 50;
+        }
+
+        #Birdy {
+            width: 2.9%;
+            padding-bottom: 2%;
+            background-image: url('http://flappybird.io/img/bird.png');
+            background-size: 300%;
+            position: absolute;
+            top: 50%;
+            left: 20%;
+            z-index: 150;
+        }
+
+        #PauseButton {
+            position: absolute;
+            top: 2%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: orange;
+            border-radius: 5px;
+            font-size: 1.5em;
+            text-align: center;
+            z-index: 50;
+            cursor: pointer;
+            color: white;
+        }
+
+        .Pipe {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            width: 5%;
+            background: greenyellow;
+            animation: PipeMovement 15s linear infinite;
+        }
+
+        @keyframes PipeMovement {
+            from {
+                left: 100%;
+            }
+            to {
+                left: -25%;
+            }
+        }
+
+        .Pipe.paused {
+            animation-play-state: paused;
+        }
+
+        #LostScoreScreen {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 5px 12px;
+            background: #ded895;
+            border-radius: 4%;
+            border: 2px solid black;
+            text-align: center;
+            display: none;
+            font-family: 'Fredoka One', sans-serif;
+            font-size: 2vw;
+            color: white;
+            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+            z-index: 150;
+        }
+
+        #CurrentScoreCard {
+            position: absolute;
+            left: 50%;
+            top: 10%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-family: 'Fredoka One', sans-serif;
+            font-size: 4vw;
+            color: white;
+            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
+            z-index: 50;
+        }
+
+        #popup-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 300;
+            display: none;
+        }
+
+        #popup-message h2 {
+            font-family: 'Fredoka One', sans-serif;
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        #popup-message button {
+            background-color: #ff6f61;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #popup-message button:hover {
+            background-color: #ff4b45;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+    <div class="container" id="search-container">
+        <h1>Flight Search</h1>
+        <form id="flight-form" action="/search" method="post">
+            <div class="form-group">
+                <label for="departure">Departure Place:</label>
+                <input type="text" id="departure" name="departure" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="destination">Arrival Place:</label>
+                <input type="text" id="destination" name="destination" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="departure_date">Departure Date:</label>
+                <input type="date" id="departure_date" name="departure_date" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="return_date">Return Date:</label>
+                <input type="date" id="return_date" name="return_date" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Search Flights</button>
+        </form>
+    </div>
+
+    <div id="popup-message">
+        <h2>Play a Game!</h2>
+        <p>While we compile your data, enjoy a quick game of Flappy Bird!</p>
+        <button id="start-game">Start Game</button>
+    </div>
+
+    <div id="Canvas">
+        <div class="loading-bar" id="loading-bar">
+            <div class="loading-bar-inner" id="loading-bar-inner"></div>
+            <div class="loading-bar-text" id="loading-bar-text">0%</div>
+        </div>
+
+        <div id="InstructionBox" style="position: absolute; left: 50%; display:none;">
+            <div style="position: relative; left: -50%; z-index: 150; font-family: 'Fredoka One', sans-serif; color:white; font-size: 2vw;" class="noSelect">
+                Click to Fly <br>
+                "P" to Pause
+            </div>
+        </div>
+
+        <div style="position: absolute; left: 50%; top: 50%;">
+            <div id="CurrentScoreCard" class="noSelect">
+                <span id="CurrentScore">0</span>
+            </div>
+        </div>
+
+        <div style="position: absolute; left: 50%; top: 50%;">
+            <div id="LostScoreScreen" class="noSelect">
+                <span>Score</span>
+                <br>
+                <span id="FinalScore">0</span>
+                <br>
+                <span>Best</span>
+                <br>
+                <span id="BestScore">0</span>
+                <br>
+                <button id="ResetButton" type="button" class="btn btn-warning">Reset</button>
+            </div>
+        </div>
+
+        <div id="Birdy" style="background-position-x: 400%;"></div>
+        <div id="PauseButton" class="noSelect">Pause</div>
+    </div>
+
+    <script>
+        $(function () {
+            $('#InstructionBox').slideDown();
+            setTimeout(function () { $('#InstructionBox').slideUp(); }, 5000);
+
+            const searchContainer = $('#search-container');
+            const canvas = $('#Canvas');
+            const popupMessage = $('#popup-message');
+            const flightForm = $('#flight-form');
+
+            function showFlappyBird() {
+                searchContainer.hide();
+                canvas.show();
+                resetGame();
+                startGame();
+            }
+
+            flightForm.on('submit', function (event) {
+                event.preventDefault();
+                if (!validateForm()) return;
+                popupMessage.show();
+                startFlappyBirdAndProgress();
+            });
+
+            $('#start-game').on('click', function () {
+                popupMessage.hide();
+                showFlappyBird();
+            });
+
+            function validateForm() {
+                const departure = $('#departure').val().trim().toLowerCase();
+                const destination = $('#destination').val().trim().toLowerCase();
+                const departureDate = new Date($('#departure_date').val());
+                const returnDate = new Date($('#return_date').val());
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                if (departure.length <= 4 || destination.length <= 4) {
+                    alert("Departure and Arrival places must be the full name, no abbreviations.");
+                    return false;
+                }
+
+                if (departureDate < today) {
+                    alert("Departure date cannot be in the past.");
+                    return false;
+                }
+
+                if (returnDate && returnDate < today) {
+                    alert("Return date cannot be in the past.");
+                    return false;
+                }
+
+                if (returnDate && returnDate < departureDate) {
+                    alert("Return date cannot be earlier than the departure date.");
+                    return false;
+                }
+
+                if (departure === destination) {
+                    alert("Departure and Arrival places cannot be the same.");
+                    return false;
+                }
+
+                return true;
+            }
+
+            function startFlappyBirdAndProgress() {
+                const loadingBar = $('#loading-bar');
+                const loadingBarInner = $('#loading-bar-inner');
+                const loadingBarText = $('#loading-bar-text');
+
+                loadingBar.show();
+                loadingBarInner.css('width', '0%');
+                loadingBarText.text('0%');
+
+                let startTime = Date.now();
+                let duration = 420000;
+
+                function updateProgress() {
+                    let elapsedTime = Date.now() - startTime;
+                    let progress = Math.min((elapsedTime / duration) * 100, 100);
+                    loadingBarInner.css('width', progress + '%');
+                    loadingBarText.text(Math.floor(progress) + '%');
+
+                    if (progress < 100) {
+                        requestAnimationFrame(updateProgress);
+                    }
+                }
+
+                requestAnimationFrame(updateProgress);
+
+                setTimeout(function () {
+                    flightForm.off('submit').submit();
+                }, 100);
+            }
+
+            var canvasObject = $('#Canvas');
+            var gameLoopIntervalID = 0;
+            var Paused = true;
+            var Lost = false;
+            var CurrentScore = 0;
+
+            function pauseGame() {
+                clearInterval(gameLoopIntervalID);
+                $('.Pipe').addClass('paused');
+                $('#PauseButton').text('Resume');
+                Paused = true;
+            }
+
+            function startGame() {
+                if (Lost) {
+                    return;
+                }
+                gameLoopIntervalID = setInterval(function () { gameLoop(); }, 30);
+                $('.Pipe').removeClass('paused');
+                $('#PauseButton').text('Pause');
+                Paused = false;
+            }
+
+            function endGame() {
+                Lost = true;
+                pauseGame();
+                var cookieScore = getCookie('HighScore') || 0;
+                setCookie('HighScore', Math.max(CurrentScore, cookieScore), 30000);
+                $('#FinalScore').text(CurrentScore);
+                $('#BestScore').text(Math.max(CurrentScore, cookieScore));
+                $('#LostScoreScreen').slideDown();
+            }
+
+            function resetGame() {
+                pauseGame();
+                $('.Pipe').remove();
+                Lost = false;
+                CurrentScore = 0;
+                $('#CurrentScore').text(CurrentScore);
+                Birdy.Reset();
+                $('#LostScoreScreen').hide();
+                $('#Canvas').show();
+                startGame();
+            }
+
+            function togglePause() {
+                if (!Paused) {
+                    pauseGame();
+                } else {
+                    startGame();
+                }
+            }
+
+            $('#PauseButton').click(function () {
+                togglePause();
+            });
+
+            $('#ResetButton').click(function () {
+                resetGame();
+            });
+
+            canvasObject.mousedown(function () {
+                if (!Paused) {
+                    Birdy.jump();
+                }
+            });
+
+            $('body').keydown(function (event) {
+                if (!canvas.is(':visible')) return;
+
+                if (event.which == 32) {
+                    event.preventDefault();
+                }
+                if (event.which == 80) {
+                    togglePause();
+                    event.preventDefault();
+                }
+            });
+
+            var gameLoopCounter = 0;
+
+            function gameLoop() {
+                if (Paused) return;
+
+                if (gameLoopCounter % 2 === 0) {
+                    incrementScore();
+                    checkCollisions();
+                }
+
+                isInBound(Birdy.BirdyObject, canvasObject);
+                Birdy.fall();
+
+                if (gameLoopCounter % 90 === 0) {
+                    addPipe();
+                    cleanPipes();
+                }
+
+                if (gameLoopCounter % 7 === 0) {
+                    Birdy.flapWings();
+                }
+
+                gameLoopCounter++;
+            }
+
+            var Birdy = new (function () {
+                var selectorObject = $('#Birdy');
+                var jumping = false;
+                var gravVeloc = 0;
+                var gravAccel = 0.3;
+                var terminalVelocity = 5;
+                var Angle = 0;
+                var WingPosition = 0;
+                var WingPositions = [0, 1, 2, 1];
+
+                this.Reset = function () {
+                    jumping = false;
+                    gravVeloc = 0;
+                    Angle = 0;
+                    WingPosition = 0;
+                    selectorObject.stop().rotate(0).css('top', '50%');
+                }
+
+                this.fall = function () {
+                    if (!jumping) {
+                        selectorObject.stop().animate({ top: '+=' + gravVeloc + '%' }, 30, 'linear');
+                        gravVeloc += gravAccel;
+                        if (gravVeloc > terminalVelocity) {
+                            gravVeloc = terminalVelocity;
+                        }
+                        var AdjustedAngle = Angle + 15 * (gravVeloc / terminalVelocity) ^ 2;
+                        adjustAngle(Math.min(AdjustedAngle, 90));
+                    } else {
+                        gravVeloc = 0;
+                    }
+                };
+
+                this.jump = function () {
+                    if (Paused) {
+                        return;
+                    }
+                    jumping = true;
+                    adjustAngle(-45);
+                    selectorObject.stop().animate({ top: '-=9%' }, 100, 'linear', function () {
+                        jumping = false;
+                        Birdy.fall();
+                    });
+                };
+
+                this.flapWings = function () {
+                    WingPosition++;
+                    if (Angle > 45) {
+                        WingPosition = 1;
+                    }
+                    selectorObject.css("background-position-x", WingPositions[WingPosition % 4] * 50 + "%");
+                }
+
+                function adjustAngle(angle) {
+                    selectorObject.rotate(angle);
+                    Angle = angle;
+                }
+
+                this.BirdyObject = selectorObject;
+            });
+
+            function addPipe() {
+                var PipeGap = 40, MinPipeHeight = 5;
+                var MaxTopPipeHeight = 100 - PipeGap - 2 * MinPipeHeight;
+                var TopPipeHeight = Math.random() * MaxTopPipeHeight + MinPipeHeight;
+                var BottomPipeTop = TopPipeHeight + PipeGap;
+                var BottomPipeHeight = 100 - BottomPipeTop;
+
+                $('<div/>').addClass('Pipe').css('height', TopPipeHeight + '%').data('scored', false).appendTo(canvasObject);
+                $('<div/>').addClass('Pipe BottomPipe').css({
+                    height: BottomPipeHeight + '%',
+                    top: BottomPipeTop + '%'
+                }).data('scored', false).appendTo(canvasObject);
+            }
+
+            function cleanPipes() {
+                $('.Pipe').each(function () {
+                    if ($(this).offset().left / $(this).parent().width() < -0.2) {
+                        $(this).remove();
+                    }
+                });
+            }
+
+            function checkCollisions() {
+                $('.Pipe').each(function () {
+                    if (isIntersecting(Birdy.BirdyObject, $(this))) {
+                        endGame();
+                    }
+                });
+            }
+
+            function isIntersecting(obj1, obj2) {
+                var obj1Dimensions = [obj1.offset().left, obj1.offset().top, obj1.offset().left + obj1.width(), obj1.offset().top + obj1.height()];
+                var obj2Dimensions = [obj2.offset().left, obj2.offset().top, obj2.offset().left + obj2.width(), obj2.offset().top + obj2.height()];
+
+                return !(obj1Dimensions[3] < obj2Dimensions[1]
+                    || obj1Dimensions[1] > obj2Dimensions[3]
+                    || obj1Dimensions[0] > obj2Dimensions[2]
+                    || obj1Dimensions[2] < obj2Dimensions[0]);
+            }
+
+            function isInBound(birdy, canvas) {
+                if (birdy.offset().top + birdy.height() > canvas.offset().top + canvas.height() || birdy.offset().top < canvas.offset().top) {
+                    endGame();
+                }
+            }
+
+            function incrementScore() {
+                if (Lost) return;
+
+                $('.BottomPipe').each(function () {
+                    var BirdyBeakXPos = Birdy.BirdyObject.offset().left + Birdy.BirdyObject.width();
+                    var PipeRightXPos = $(this).offset().left + $(this).width();
+                    if (!$(this).data('scored') && BirdyBeakXPos > PipeRightXPos) {
+                        CurrentScore++;
+                        $(this).data('scored', true);
+                    }
+                });
+                $('#CurrentScore').text(CurrentScore);
+            }
+
+            startGame();
+
+            jQuery.fn.rotate = function (degrees) {
+                return $(this).css({
+                    '-webkit-transform': 'rotate(' + degrees + 'deg)',
+                    '-moz-transform': 'rotate(' + degrees + 'deg)',
+                    '-ms-transform': 'rotate(' + degrees + 'deg)',
+                    'transform': 'rotate(' + degrees + 'deg)'
+                });
+            };
+
+            function setCookie(cname, cvalue, exdays) {
+                var d = new Date();
+                d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+                var expires = "expires=" + d.toGMTString();
+                document.cookie = cname + "=" + cvalue + "; " + expires;
+            }
+
+            function getCookie(cname) {
+                var name = cname + "=";
+                var ca = document.cookie.split(';');
+                for (var i = 0; i < ca.length; i++) {
+                    var c = ca[i].trim();
+                    if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+                }
+                return "";
+            }
+        });
+    </script>
+</body>
+
+</html>
